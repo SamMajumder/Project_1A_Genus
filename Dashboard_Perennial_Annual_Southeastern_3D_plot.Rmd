@@ -1,0 +1,149 @@
+---
+title: "Dashboard showing the most divergent traits"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard) 
+library(plotly)
+library(tidyverse)
+library(htmlwidgets)
+
+```
+
+```{r} 
+train <- read.csv("train_imputed.csv")
+
+test <- read.csv("train_imputed.csv")
+
+
+
+#### converting the species column to factor ### 
+
+train$Species <- as.factor(train$Species)
+
+test$Species <- as.factor(test$Species)
+
+
+```
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### ANNUAL
+
+```{r}
+
+##### keeping only the annuals  ### 
+
+
+train_annuals <- filter(train, Species == "H. praecox ssp. runyonii" | Species == "H. debilis ssp. tardiflorus" | Species == "H. neglectus" | Species == "H. petiolaris ssp. petiolaris" | Species == "H. niveus ssp. tephrodes" | Species == "H. annuus" | Species == "H. argophyllus")
+
+test_annuals <- filter(test, Species == "H. praecox ssp. runyonii" | Species == "H. debilis ssp. tardiflorus" | Species == "H. neglectus" | Species == "H. petiolaris ssp. petiolaris" | Species == "H. niveus ssp. tephrodes" | Species == "H. annuus" | Species == "H. argophyllus")
+
+
+################# 3D PLOT BASED ON THE MOST DIVERGENT TRAITS ###### 
+
+
+library(plotly)
+
+plot <- plot_ly(train_annuals,x= ~LTD,y= ~LA,z= ~WPTB, color = ~Species
+) %>%
+  add_markers() %>%
+  layout(
+    scene = list(xaxis = list(title = 'LTD'),
+                 yaxis = list(title = 'LA'),
+                 zaxis = list(title = 'WPTB'))
+  )
+
+
+plot
+
+
+saveWidget(plot,"Annual3d.html")
+
+```
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### PERENNIAL
+
+```{r}
+
+### keeping all the perennial clade ####
+
+train_perennial <- filter(train, Species == "H. salicifolius" | Species == "H. maximiliani" | Species == "H. giganteus" | Species == "H. verticillatus" | Species == "H. grosseserratus" | Species == "H. divaricatus" | Species == "H. microcephalus" | Species == "H. cusickii" | Species == "H. arizonensis") 
+
+test_perennial <- filter(test, Species == "H. salicifolius" | Species == "H. maximiliani" | Species == "H. giganteus" | Species == "H. verticillatus" | Species == "H. grosseserratus" | Species == "H. divaricatus" | Species == "H. microcephalus" | Species == "H. cusickii" | Species == "H. arizonensis") 
+
+################# 3D PLOT BASED ON THE MOST DIVERGENT TRAITS ###### 
+
+
+library(plotly)
+
+plot <- plot_ly(train_perennial,x= ~LD13C,y= ~LCirc,z= ~LA, color = ~Species
+) %>%
+  add_markers() %>%
+  layout(
+    scene = list(xaxis = list(title = 'LD13C'),
+                 yaxis = list(title = 'LCirc'),
+                 zaxis = list(title = 'LA'))
+  )
+
+
+plot
+
+saveWidget(plot,"Perennial3d.html")
+
+
+```
+
+
+------------------------------------------------------------------------ 
+
+### SOUTHEASTERN PERENNIAL
+
+
+```{r}
+
+train_southeastern <- filter(train, Species == "H. carnosus" | Species == "H. atrorubens" | Species == "H. radula" | Species == "H. silphioides" | Species == "H. floridanus" | Species == "H. heterophyllus" | Species == "H. longifolius" | Species == "H. angustifolius")
+
+
+test_southeastern <- filter(test, Species == "H. carnosus" | Species == "H. atrorubens" | Species == "H. radula" | Species == "H. silphioides" | Species == "H. floridanus" | Species == "H. heterophyllus" | Species == "H. longifolius" | Species == "H. angustifolius")
+
+
+plot <- plot_ly(train_southeastern,x= ~LCirc,y= ~LTD,z= ~LA, color = ~Species
+) %>%
+  add_markers() %>%
+  layout(
+    scene = list(xaxis = list(title = 'LCirc'),
+                 yaxis = list(title = 'LTD'),
+                 zaxis = list(title = 'LA'))
+  )
+
+
+plot
+
+saveWidget(plot,"southeasternperennials3d.html")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
