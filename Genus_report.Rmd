@@ -1,0 +1,391 @@
+---
+title: "Phenotypically divergent trait axes in the wild sunflower genus"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(randomForest)
+library(lattice)
+library(ggplot2)
+library(caret)
+library(tidyverse)
+library(htmlwidgets)
+
+
+#################
+#### WF1 #######
+###########
+
+Gini <- read.csv("D:/Drive_C_2_18_21/PhD_WORK/Chapter_1/Genus/Gini/Feature_selection/Importance_by_gini_Genus.csv")
+
+## renaming the first column ### 
+
+Gini_IMP <- rename(Gini,Features=X)
+
+### sort the features ### 
+
+Gini_IMP <- Gini_IMP[order(-Gini_IMP$Overall),]
+
+
+#### Only keeping the top 5 features ##
+
+Gini_IMP <- Gini_IMP[c(1:10),]
+
+p_gini <-ggplot(Gini_IMP, aes(x=Features, y=Overall, fill=Features)) +
+  geom_bar(stat="identity")+theme_minimal() +
+  coord_flip() +
+  ggtitle("Important Features")+
+  theme(plot.title = element_text(color="black", size=14, face="bold"),
+        axis.title.x = element_text(color="red", size=14, face="bold"),
+        axis.title.y = element_text(color="blue", size=14, face="bold"))
+
+
+## MODELLING ###
+
+### Read in the training and test files ###
+
+train <- read.csv("D:/Drive_C_2_18_21/PhD_WORK/Chapter_1/train_imputed.csv")
+
+test <- read.csv("D:/Drive_C_2_18_21/PhD_WORK/Chapter_1/test_imputed.csv") 
+
+#### converting the species column to factor ### 
+
+train$Species <- as.factor(train$Species)
+
+test$Species <- as.factor(test$Species) 
+### Standardizing the data ###
+
+train <- cbind(train[1], apply(train[2:72],2,scale)) 
+test <- cbind(test[1], apply(test[2:72],2,scale))
+
+
+##### 
+
+##### using only the top 30 variables as deemed by varImpPlot ### 
+###
+
+train_gini <- train[,c("Species","LTD","LCirc","LA","LFM","WPFF","WPFB","LDM","WPSMF","LLife",
+                       "FRN","LWC","LLT","WPTB","WPBMF","LD13C","FRFM","FPFM","FDFM","FTDM",
+                       "FRDM","FTFM","LS","LDMC","P.T","LNRa","FDDM","LLC","LT","LP","Pe.Di")]
+
+
+test_gini <- test[,c("Species","LTD","LCirc","LA","LFM","WPFF","WPFB","LDM","WPSMF","LLife",
+                     "FRN","LWC","LLT","WPTB","WPBMF","LD13C","FRFM","FPFM","FDFM","FTDM",
+                     "FRDM","FTFM","LS","LDMC","P.T","LNRa","FDDM","LLC","LT","LP","Pe.Di")]
+
+
+
+##### RF #### 
+
+
+##### Random forests##
+set.seed(1234)
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+Rf_gini <- train(Species~., data=train_gini,
+                  method="rf",ntree= 500,trControl=params,
+                  verbose=F,tuneGrid=data.frame(mtry=5))
+
+
+
+#### GBM ### 
+
+grid <- expand.grid(n.trees=c(600,1000),
+                    interaction.depth=c(4,6),
+                    shrinkage=0.1,
+                    n.minobsinnode=10)
+
+
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+gbm_gini <- train(Species~., data=train_gini,
+                    method="gbm",trControl=params,
+                    verbose=T,tuneGrid=grid)
+
+
+model_list_gini <- resamples(list(Rf=Rf_gini, GBM=gbm_gini))
+
+##########################
+########### WF2 ##################
+## RFE ###
+
+RFE <- read.csv("D:/Drive_C_2_18_21/PhD_WORK/Chapter_1/Genus/RFE/Feature_selection/RFE_genus_importance.csv")
+
+RFE_Imp <- rename(RFE,Features=X)
+
+## sort the features ## 
+
+RFE_Imp <- RFE_Imp[order(-RFE_Imp$Overall),]
+
+### only keeping the 5 features ## 
+
+RFE_Imp <- RFE_Imp[c(1:5),]
+
+p_rfe <- ggplot(RFE_Imp, aes(x=Features, y=Overall, fill=Features)) +
+  geom_bar(stat="identity")+theme_minimal() +
+  coord_flip() +
+  ggtitle("Important Features")+
+  theme(plot.title = element_text(color="black", size=14, face="bold"),
+        axis.title.x = element_text(color="red", size=14, face="bold"),
+        axis.title.y = element_text(color="blue", size=14, face="bold"))
+
+
+
+###### MODELLING
+
+######## 
+
+train_rfe <- train[,c("Species","LCirc","LTD","WPFF","LA","WPFB")]
+
+test_rfe <- test[,c("Species","LCirc","LTD","WPFF","LA","WPFB")]
+
+#### MODELLING ##### 
+
+##### Random forests##
+set.seed(1234)
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+Rf_rfe <- train(Species~., data=train_rfe,
+                  method="rf",ntree= 500,trControl=params,
+                  verbose=F,tuneGrid=data.frame(mtry=5))
+
+
+
+#### GBM ### 
+
+grid <- expand.grid(n.trees=c(600,1000),
+                    interaction.depth=c(4,6),
+                    shrinkage=0.1,
+                    n.minobsinnode=10)
+
+
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+gbm_rfe <- train(Species~., data=train_rfe,
+                  method="gbm",trControl=params,
+                  verbose=T,tuneGrid=grid)
+
+
+
+### Model Comparison ###
+
+model_list_rfe <- resamples(list(Rf=Rf_rfe, GBM=gbm_rfe))
+
+
+
+
+
+##########################
+### Boruta ### 
+
+Boruta <- read.csv("D:/Drive_C_2_18_21/PhD_WORK/Chapter_1/Genus/Boruta/Feature_selection/Boruta_genus.csv") 
+
+Boruta_Imp <- rename(Boruta,Features=X)
+
+Boruta_Imp <- Boruta_Imp %>% select(Features,meanImp)
+
+### Sort the features by mean imp ### 
+
+Boruta_Imp <- Boruta_Imp[order(-Boruta_Imp$meanImp),]
+
+#### Only keeping the top 10 ### 
+
+Boruta_Imp <- Boruta_Imp[c(1:10),]
+
+p_Boruta <- ggplot(Boruta_Imp, aes(x=Features, y=meanImp, fill=Features)) +
+  geom_bar(stat="identity")+theme_minimal() +
+  coord_flip() +
+  ggtitle("Important Features")+
+  theme(plot.title = element_text(color="black", size=14, face="bold"),
+        axis.title.x = element_text(color="red", size=14, face="bold"),
+        axis.title.y = element_text(color="blue", size=14, face="bold"))
+
+
+#### MODELLING ### ALL Features are important ## So no need to subset the data ## This only applies to WF3 however
+
+
+##### Random forests##
+
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+Rf_boruta <- train(Species~., data=train,
+                  method="rf",ntree= 500,trControl=params,
+                  verbose=F,tuneGrid=data.frame(mtry=5))
+
+
+
+#### GBM ### 
+
+grid <- expand.grid(n.trees=c(600,1000),
+                    interaction.depth=c(4,6),
+                    shrinkage=0.1,
+                    n.minobsinnode=10)
+
+
+params <- trainControl(method = "cv",
+                       number = 5)
+
+
+
+set.seed(1234)
+
+gbm_boruta <- train(Species~., data=train,
+             method="gbm",trControl=params,
+             verbose=T,tuneGrid=grid)
+
+
+
+### Model Comparison ###
+
+model_list_boruta <- resamples(list(Rf=Rf_boruta, GBM=gbm_boruta))
+
+
+```
+
+
+Workflow 1
+=====================================  
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Top ten features identified by gini impurity
+
+```{r}
+
+ggplotly(p_gini)
+
+
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Model Comparison
+
+```{r}
+
+### Model Comparison ###
+
+bwplot(model_list_gini)
+
+
+```
+
+Workflow 2 {data-orientation=rows}
+========================================
+
+Row {data-height=500}
+------------------------------------------------------------------------
+
+### Top five features identified by RFE
+
+```{r}
+
+ggplotly(p_rfe)
+
+
+```
+
+Row {data-height=500}
+-----------------------------------------------------------------------
+
+### Model Comparison
+
+```{r}
+
+bwplot(model_list_rfe)
+
+
+```
+
+Workflow 3 {data-orientation=rows}
+========================================
+
+Row {data-height=500}
+------------------------------------------------------------------------
+
+### Top ten features identified by Boruta
+
+```{r}
+
+ggplotly(p_Boruta)
+
+
+```
+
+Row {data-height=500}
+-----------------------------------------------------------------------
+
+### Model Comparison
+
+```{r}
+
+bwplot(model_list_boruta)
+
+```
+
+Trait Axes {data-orientation=rows}
+========================================
+
+
+------------------------------------------------------------------------
+
+### Most phenotypically divergent trait axes
+
+```{r}
+
+plot <- plot_ly(train,x= ~LTD,y= ~LCirc,z= ~LA, color = ~Species
+) %>%
+  add_markers() %>%
+  layout(
+    scene = list(xaxis = list(title = 'LTD'),
+                 yaxis = list(title = 'LCirc'),
+                 zaxis = list(title = 'LA'))
+  )
+
+
+plot
+
+
+
+saveWidget(plot,"Genus3d.html")
+
+
+
+
+```
+
+
